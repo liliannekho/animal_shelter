@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import AuthPage from './pages/AuthPage/AuthPage'
-import HomePage from './pages/HomePage/HomePage'
+import AuthPage from './components/pages/AuthPage/AuthPage'
+import HomePage from './components/pages/HomePage/HomePage'
 import { Route, Routes } from 'react-router-dom'
 import styles from './App.module.scss'
 
