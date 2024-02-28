@@ -1,112 +1,142 @@
 import { useState, useEffect } from 'react'
-import TodoList from './components/TodoList/TodoList'
+import AuthPage from './pages/AuthPage/AuthPage'
+import HomePage from './pages/HomePage/HomePage'
+import { Route, Routes } from 'react-router-dom'
 import styles from './App.module.scss'
 
-
 export default function App(){
-    const [todos, setTodos] = useState([])
-    const [completedTodos, setCompletedTodos] = useState([])
-    const [newTodo, setNewTodo] = useState({
-        title: '',
-        completed: false
-    })
-
-    //createTodos
-    const createTodo = async () => {
-        const body = {...newTodo}
+    const [user, setUser] = useState(null)
+    const [token, setToken] = useState('')
+   
+    const signUp = async (credentials) => {
         try {
-            const response = await fetch('/api/todos', {
+            const response = await fetch('/api/users', {
+                method: 'POST', 
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(credentials)
+            })
+            const data = await response.json()
+            setUser(data.user)
+            setToken(data.token)
+            localStorage.setItem('token', data.token)
+            localStorage.setItem('user', JSON.stringify(data.user))
+        } catch (error) {
+            console.error(error)
+        }        
+    }
+
+    const login = async (credentials) => {
+        try {
+            const response = await fetch('/api/users/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(body)
+                body: JSON.stringify(credentials)
             })
-            const createdTodo = await response.json()
-            const todosCopy = [createdTodo,...todos]
-            setTodos(todosCopy)
-            setNewTodo({
-                title: '',
-                completed: false
-            })
-        } catch (error) {   
+            const data = await response.json()
+    
+            const tokenData = data.token 
+            localStorage.setItem('token', tokenData)
+            setToken(tokenData)
+                                                        /// User authentication MUST send the token. You can choose afterwards what other data you want to send back i.e. User. We want user here because the user data has the blog posts 
+            const userData = data.user
+            localStorage.setItem('user', JSON.stringify(userData))
+            setUser(userData)
+        } catch (error) {
             console.error(error)
         }
+        
     }
-    //deleteTodos
-    const deleteTodo = async (id) => {
+
+    const createAnimal = async (animalData, token) => {
+        if(!token) {
+            return
+        }
         try {
-            const index = completedTodos.findIndex((todo) => todo._id === id)
-            const completedTodosCopy = [...completedTodos]
-            const response = await fetch(`/api/todos/${id}`, {
-                method: 'DELETE',
+            const response = await fetch('/api/shelter', {
+                method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(animalData)
             })
-            await response.json()
-            completedTodosCopy.splice(index, 1)
-            setCompletedTodos(completedTodosCopy)
+            const data = await response.json()
+            return(data)
         } catch (error) {
             console.error(error)
         }
     }
-    //moveToCompleted
-    const moveToCompleted = async (id) => {
+
+    const getAllAnimals = async() => {
         try {
-            const index = todos.findIndex((todo) => todo._id === id)
-            const todosCopy = [...todos]
-            const subject = todosCopy[index]
-            subject.completed = true 
-            const response = await fetch(`/api/todos/${id}`, {
+            const response = await fetch('/api/shelter') 
+            const data = await response.json()
+            return data
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    const getIndividualAnimal = async (id) => {
+        try {
+            const response = await fetch(`/api/shelter/${id}`)
+            const data = await response.json()
+            return data 
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    const updateAnimal = async (newAnimalData, id, token) => {
+        if(!token) {
+            return
+        }
+
+        try {
+            const response = await fetch(`/api/shelter/${id}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(subject)
+                body: JSON.stringify(newAnimalData)
             })
-            const updatedTodo = await response.json()
-            const completedTDsCopy = [updatedTodo, ...completedTodos]
-            setCompletedTodos(completedTDsCopy)
-            todosCopy.splice(index, 1)
-            setTodos(todosCopy)
+            const data = await response.json()
+            return data 
         } catch (error) {
             console.error(error)
         }
     }
-    //getTodos
-    const getTodos = async () => {
-        try{
-            const response = await fetch('/api/todos')
-            const foundTodos = await response.json()
-            setTodos(foundTodos.reverse())
-            console.log('hey')
-            const responseTwo = await fetch('/api/todos/completed')
-            const foundCompletedTodos = await responseTwo.json()
-            setCompletedTodos(foundCompletedTodos.reverse())
-        } catch(error){
+
+    const deleteAnimal = async (id, token) => {
+        if(!token) {
+            return
+        }
+
+        try {
+            const response = await fetch(`/api/shelter/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+            })
+            const data = await response.json()
+            return data 
+        } catch (error) {
             console.error(error)
         }
     }
-    useEffect(() => {
-        getTodos()
-    }, [])
-    return(
-        <>
-			
-            <div className={styles.banner}>
-                <h1>The World Famous Big Poppa Code React Starter Kit</h1>
-              <img src='https://i.imgur.com/5WXigZL.jpg'/>
-            </div>
-            <TodoList
-            newTodo={newTodo}
-            setNewTodo={setNewTodo}
-            createTodo={createTodo}
-            todos={todos}
-            moveToCompleted={moveToCompleted}
-            completedTodos={completedTodos}
-            deleteTodo={deleteTodo}
-            />
-        </>
+
+    return (
+        <div className={styles.App}>
+            <Routes>
+                <Route path="/" element={<HomePage user={user} token={token} setUser ={setUser} setToken={setToken} getAllAnimals={getAllAnimals} createAnimal={createAnimal} deleteAnimal={deleteAnimal} updateAnimal={updateAnimal}/>}></Route>
+                <Route path="/register" element={<AuthPage setUser={setUser} setToken={setToken} signUp={signUp} login={login}/> }></Route>
+            </Routes>
+        </div>
     )
 }
